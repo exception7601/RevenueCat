@@ -10,7 +10,7 @@ VERSION=$(gh release list \
 )
 
 all() {
-  # download_framework
+  download_framework
   make_framework
 
   IDENTITY=$(echo $(list_identity) | grep 'Apple Distribution' | awk 'NR==1 {print $2}')
@@ -25,6 +25,8 @@ zip_framework() {
   echo "- ZIP framework -"
   cd ./xcframeworks/
   7z a -tzip ../$NEW_NAME RevenueCat.xcframework
+  
+  # problem for symbolic link
   # zip -r $NEW_NAME *.xcframework
   # rm -rf *.xcframework
   # volda pro diretorio raiz
