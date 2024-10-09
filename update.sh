@@ -67,17 +67,18 @@ download_framework() {
 
 upload_framework() {
   SUM=$(swift package compute-checksum ${NEW_NAME} )
-
-  echo ${VERSION} > version
+  BUILD=$(date +%s) 
+  NEW_VERSION=${VERSION}.${BUILD}
+  echo $NEW_VERSION > version
 
   git add version
-  git commit -m "new Version ${VERSION}"
-  # git tag -s -a ${VERSION} -m "v${VERSION}"
-  git checkout -b release-v${VERSION}
+  git commit -m "new Version ${NEW_VERSION}"
+  git tag -s -a ${NEW_VERSION} -m "v${NEW_VERSION}"
+  # git checkout -b release-v${VERSION}
   git push origin HEAD --tags
-  gh release create ${VERSION} ${NEW_NAME} --notes "checksum \`${SUM}\`"
+  gh release create ${NEW_VERSION} ${NEW_NAME} --notes "checksum \`${SUM}\`"
 
-  URL=$(gh release view ${VERSION} \
+  URL=$(gh release view ${NEW_VERSION} \
     --repo exception7601/RevenueCat \
     --json assets \
     -q '.assets[0].apiUrl'
@@ -96,17 +97,17 @@ SPM binaryTarget
 END
 )
 
-  gh release edit ${VERSION} --notes  "${NOTES}"
+  gh release edit ${NEW_VERSION} --notes  "${NOTES}"
   echo "${NOTES}"
 }
 
 resing_framework() {
+  echo "- Resing framework ${1} ${2} ${$?}"
   if [ -z "$2" ] || [ -z "$1" ]; then
     echo "Usage: $0 <name-identity> <path-framework>"
     exit 1
   fi
   codesign --force --timestamp -s "$1" "$2"
-  echo "- Resing framework ${1} ${2} ${$?}"
 }
 
 list_identity() {
