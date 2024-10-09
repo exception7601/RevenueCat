@@ -1,13 +1,16 @@
 NAME=RevenueCat.xcframework.zip
 REPO=RevenueCat/purchases-ios 
 NEW_NAME=revenuecat-xcframeworks.zip
-FOLDER_FRAMEWORK=./xcframeworks/RevenueCat.xcframework/
+ROOT_FOLDER=./RevenueCat
+FOLDER_FRAMEWORK=./RevenueCat/RevenueCat.xcframework/
 VERSION=$(gh release list \
   --repo ${REPO} \
   --exclude-pre-releases \
   --limit 1 \
   --json tagName -q '.[0].tagName'
 )
+
+set -e  # Saia no primeiro erro
 
 all() {
   download_framework
@@ -23,7 +26,7 @@ all() {
 
 zip_framework() {
   echo "- ZIP framework -"
-  cd ./xcframeworks/
+  cd ${ROOT_FOLDER}
   7z a -tzip ../$NEW_NAME RevenueCat.xcframework
   
   # problem for symbolic link
@@ -34,7 +37,7 @@ zip_framework() {
 }
 
 make_framework() {
-  echo "- make framework -"
+  echo "- Make framework -"
   rm -rf  \
     "$FOLDER_FRAMEWORK/tvos-arm64" \
     "$FOLDER_FRAMEWORK/tvos-arm64_x86_64-simulator" \
@@ -48,17 +51,18 @@ make_framework() {
 
 download_framework() {
 
-  echo ${VERSION}
+  echo "Download ${VERSION}"
 
-  gh release download \
-    ${VERSION} \
-    --repo ${REPO} \
-    -p ${NAME} \
-    -D . \
-    -O ${NAME} --clobber
+  if [ ! -d "${FOLDER_FRAMEWORK}" ]; then 
+    gh release download \
+      ${VERSION} \
+      --repo ${REPO} \
+      -p ${NAME} \
+      -D . \
+      -O ${NAME} --clobber
 
-  unzip -o ${NAME}
-
+    unzip -qqo ${NAME}
+  fi
 }
 
 upload_framework() {
@@ -102,6 +106,7 @@ resing_framework() {
     exit 1
   fi
   codesign --force --timestamp -s "$1" "$2"
+  echo "- Resing framework ${1} ${2} ${$?}"
 }
 
 list_identity() {
