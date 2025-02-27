@@ -1,6 +1,8 @@
 NAME=RevenueCat.xcframework.zip
 REPO=RevenueCat/purchases-ios 
-NEW_NAME=revenuecat-xcframeworks.zip
+MY_REPO=exception7601/RevenueCat
+BUILD_COMMIT=$(git log --oneline --abbrev=16 --pretty=format:"%h" -1)
+NEW_NAME=revenuecat-${BUILD_COMMIT}.zip
 ROOT_FOLDER=./RevenueCat
 FOLDER_FRAMEWORK=./RevenueCat/RevenueCat.xcframework/
 VERSION=$(gh release list \
@@ -9,6 +11,8 @@ VERSION=$(gh release list \
   --limit 1 \
   --json tagName -q '.[0].tagName'
 )
+
+JSON_FILE="Carthage/RevenueCatBinary.json"
 
 set -e  # Saia no primeiro erro
 
@@ -67,30 +71,41 @@ download_framework() {
 
 upload_framework() {
   SUM=$(swift package compute-checksum ${NEW_NAME} )
+  DOWNLOAD_URL="https://github.com/${MY_REPO}/releases/download/${VERSION}/${NEW_NAME}"
   BUILD=$(date +%s) 
-  NEW_VERSION=${VERSION}.${BUILD}
-  echo $NEW_VERSION > version
+  NEW_VERSION=${VERSION}
+  # echo $NEW_VERSION > version
 
-  git add version
+  if [ ! -f $JSON_FILE ]; then
+    echo "{}" > $JSON_FILE
+  fi
+  Make Carthage
+  JSON_CARTHAGE="$(jq --arg version "${VERSION}" --arg url "${DOWNLOAD_URL}" '. + { ($version): $url }' $JSON_FILE)" 
+  echo $JSON_CARTHAGE > $JSON_FILE
+  git add $JSON_FILE
   git commit -m "new Version ${NEW_VERSION}"
   git tag -s -a ${NEW_VERSION} -m "v${NEW_VERSION}"
   # git checkout -b release-v${VERSION}
   git push origin HEAD --tags
   gh release create ${NEW_VERSION} ${NEW_NAME} --notes "checksum \`${SUM}\`"
 
-  URL=$(gh release view ${NEW_VERSION} \
-    --repo exception7601/RevenueCat \
-    --json assets \
-    -q '.assets[0].apiUrl'
-  )
-
 NOTES=$(cat <<END
+Carthage
+\`\`\`
+binary "https://raw.githubusercontent.com/${MY_REPO}/main/${JSON_FILE}"
+\`\`\`
+
+Install
+\`\`\`
+carthage bootstrap --use-xcframeworks
+\`\`\`
+
 SPM binaryTarget
 
 \`\`\`
 .binaryTarget(
   name: "RevenueCat",
-  url: "${URL}.zip",
+  url: "${DOWNLOAD_URL}",
   checksum: "${SUM}"
 )
 \`\`\`
