@@ -1,0 +1,26 @@
+name: Check Repository Updates
+
+on:
+  schedule:
+    # Todo sábado às 10:00 UTC
+    - cron: '0 10 * * 6'
+  workflow_dispatch:
+
+jobs:
+  check-updates:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write 
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Configurar usuário do Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"  
+    - name: Make script executable
+      run: chmod +x ./update.sh
+    - name: Execute update script
+      run: ./update.sh upgrade
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

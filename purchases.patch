@@ -1,0 +1,42 @@
+diff --git a/Sources/Virtual Currencies/VirtualCurrencies.swift b/Sources/Virtual Currencies/VirtualCurrencies.swift
+index 44c92b97b..3f049b0d2 100644
+--- a/Sources/Virtual Currencies/VirtualCurrencies.swift	
++++ b/Sources/Virtual Currencies/VirtualCurrencies.swift	
+@@ -14,7 +14,7 @@
+ import Foundation
+ 
+ /// This class contains all the virtual currencies associated to the user.
+-@objc(RCVirtualCurrencies) public final class VirtualCurrencies: NSObject {
++@objc(RCVirtualCurrencies) public final class VirtualCurrencies: NSObject, Codable {
+ 
+     /// Dictionary of all ``VirtualCurrency`` objects keyed by virtual currency code.
+     /// This dictionary can also be accessed through an index subscript on ``VirtualCurrencies``, e.g.
+@@ -34,7 +34,6 @@ import Foundation
+ }
+ 
+ extension VirtualCurrencies: Sendable {}
+-extension VirtualCurrencies: Codable {}
+ 
+ extension VirtualCurrencies {
+     /// Compares two ``VirtualCurrencies`` objects for equality by comparing their underlying dictionaries.
+diff --git a/Sources/Virtual Currencies/VirtualCurrency.swift b/Sources/Virtual Currencies/VirtualCurrency.swift
+index 3c7064007..c7b8091a3 100644
+--- a/Sources/Virtual Currencies/VirtualCurrency.swift	
++++ b/Sources/Virtual Currencies/VirtualCurrency.swift	
+@@ -20,7 +20,7 @@ import Foundation
+ /// - Warning: This feature is currently in beta and is subject to change.
+ ///
+ @objc(RCVirtualCurrency)
+-public final class VirtualCurrency: NSObject {
++public final class VirtualCurrency: NSObject, Codable {
+ 
+     /// The customer's current balance of the virtual currency.
+     @objc public let balance: Int
+@@ -48,7 +48,6 @@ public final class VirtualCurrency: NSObject {
+     }
+ }
+ 
+-extension VirtualCurrency: Codable {}
+ extension VirtualCurrency: Sendable {}
+ 
+ extension VirtualCurrency {
