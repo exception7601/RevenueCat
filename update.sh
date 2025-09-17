@@ -1,6 +1,8 @@
 NAME=RevenueCat.xcframework.zip
 REPO=RevenueCat/purchases-ios 
 MY_REPO=exception7601/RevenueCat
+BUILD_COMMIT=$(git log --oneline --abbrev=16 --pretty=format:"%h" -1)
+NEW_NAME=revenuecat-${BUILD_COMMIT}.zip
 ROOT_FOLDER=./RevenueCat
 FOLDER_FRAMEWORK=./RevenueCat/RevenueCat.xcframework/
 VERSION=$(gh release list \
@@ -10,47 +12,28 @@ VERSION=$(gh release list \
   --json tagName -q '.[0].tagName'
 )
 
-MODULE_PATH=purchases-ios
-FILE_VERSION=$(cat version)
-PLATAFORMS=("iOS" "iOS Simulator")
 JSON_FILE="Carthage/RevenueCatBinary.json"
-FRAMEWORK_NAME=RevenueCat
-ARCHIVE_NAME=revenuecat
-FRAMEWORK_PATH="Products/Library/Frameworks/RevenueCat.framework"
-ROOT="$(pwd)/.build/xcframeworks"
-ORIGIN=$(pwd)
 
-set -e 
+set -e  # Saia no primeiro erro
 
 all() {
-
-  if [[ "$VERSION" == "$FILE_VERSION" ]]; then
-    echo "❌ Nenhuma release nova. Lançamento atual: $VERSION"
-    exit 1
-  fi
-
   download_framework
   make_framework
 
-  IDENTITY=$(echo $(list_identity) | grep 'Apple Distribution' | awk 'NR==1 {print $2}')
-  echo "boot ${IDENTITY}"
-
-  BUILD_COMMIT=$(git log --oneline --abbrev=16 --pretty=format:"%h" -1)
-  NEW_NAME=revenuecat-${BUILD_COMMIT}.zip
-
+  # IDENTITY=$(echo $(list_identity) | grep 'Apple Distribution' | awk 'NR==1 {print $2}')
+  # echo "boot ${IDENTITY}"
   # resing_framework $IDENTITY $FOLDER_FRAMEWORK
-  remove_sing $FOLDER_FRAMEWORK
-  zip_framework $NEW_NAME 
-  upload_framework $NEW_NAME
+
+  remove_sing ${ROOT_FOLDER}
+  zip_framework
+  upload_framework
 }
 
 zip_framework() {
-  NAME_ZIP="$1"
-
   echo "- ZIP framework -"
   cd ${ROOT_FOLDER}
-  7z a -tzip ../$NAME_ZIP RevenueCat.xcframework
-  # zip -yr ../$NEW_NAME *.xcframework
+  7z a -tzip ../$NEW_NAME RevenueCat.xcframework
+  
   # problem for symbolic link
   # zip -r $NEW_NAME *.xcframework
   # rm -rf *.xcframework
@@ -88,29 +71,24 @@ download_framework() {
 }
 
 upload_framework() {
-  NAME_ZIP="$1"
-
-  SUM=$(swift package compute-checksum ${NAME_ZIP} )
-  DOWNLOAD_URL="https://github.com/${MY_REPO}/releases/download/${VERSION}/${NAME_ZIP}"
+  SUM=$(swift package compute-checksum ${NEW_NAME} )
+  DOWNLOAD_URL="https://github.com/${MY_REPO}/releases/download/${VERSION}/${NEW_NAME}"
   BUILD=$(date +%s) 
   NEW_VERSION=${VERSION}
-  echo $NEW_VERSION > version
+  # echo $NEW_VERSION > version
 
   if [ ! -f $JSON_FILE ]; then
     echo "{}" > $JSON_FILE
   fi
-
-  # Make Carthage
-  JSON_CARTHAGE="$(jq --arg version "${VERSION}" --arg url "${DOWNLOAD_URL}" '. + { ($version): $url }' $JSON_FILE)"
+  Make Carthage
+  JSON_CARTHAGE="$(jq --arg version "${VERSION}" --arg url "${DOWNLOAD_URL}" '. + { ($version): $url }' $JSON_FILE)" 
   echo $JSON_CARTHAGE > $JSON_FILE
-
   git add $JSON_FILE
-  git add version
   git commit -m "new Version ${NEW_VERSION}"
-  git tag -a ${NEW_VERSION} -m "v${NEW_VERSION}"
+  git tag -s -a ${NEW_VERSION} -m "v${NEW_VERSION}"
   # git checkout -b release-v${VERSION}
   git push origin HEAD --tags
-  gh release create ${NEW_VERSION} ${NAME_ZIP} --notes "checksum \`${SUM}\`"
+  gh release create ${NEW_VERSION} ${NEW_NAME} --notes "checksum \`${SUM}\`"
 
 NOTES=$(cat <<END
 Carthage
@@ -180,92 +158,31 @@ clean_version() {
   git push origin --delete $LAST_VERSION
 }
 
-update_sub_module() {
-  git submodule update --init --recursive
-
-  cd $MODULE_PATH
-  git fetch --tags
-  LATEST_TAG=$(git tag --sort=-creatordate | grep -v 'rc\|beta\|alpha' | head -n 1)
-  TAG_COMMIT=$(git rev-list -n 1 $LATEST_TAG)
-
-  echo "tag version: ${LATEST_TAG}"
-  git checkout -f $TAG_COMMIT
-
-  cd $ORIGIN 
-  # git add purchases-ios
-  # git commit -m "update submodule $LATEST_TAG"
-  # git push origin
-}
-
-build_framework() {
-
-  if [[ "$VERSION" == "$FILE_VERSION" ]]; then
-    echo "❌ Nenhuma release nova. Lançamento atual: $VERSION"
-    exit 1
-  fi
-
-  update_sub_module
-
-  rm -rf $ROOT
-
-  cd $MODULE_PATH
-
-  git apply ${ORIGIN}/purchases.patch
-
-  for PLATAFORM in "${PLATAFORMS[@]}"
-  do
-    xcodebuild archive \
-      -project "$FRAMEWORK_NAME.xcodeproj" \
-      -scheme "$FRAMEWORK_NAME" \
-      -destination "generic/platform=$PLATAFORM"\
-      -archivePath "$ROOT/$ARCHIVE_NAME-$PLATAFORM.xcarchive" \
-      SKIP_INSTALL=NO \
-      BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
-      DEBUG_INFORMATION_FORMAT=DWARF
-  done
-
-  xcodebuild -create-xcframework \
-    -framework "$ROOT/$ARCHIVE_NAME-iOS.xcarchive/$FRAMEWORK_PATH" \
-    -framework "$ROOT/$ARCHIVE_NAME-iOS Simulator.xcarchive/$FRAMEWORK_PATH" \
-    -output "$ROOT/$FRAMEWORK_NAME.xcframework"
-
-  BUILD_COMMIT=$(git log --oneline --abbrev=16 --pretty=format:"%h" -1)
-  NEW_NAME=revenuecat-${BUILD_COMMIT}.zip
-
-  cd "$ROOT"
-
-  # Crie o arquivo zip
-  rm -f "$NEW_NAME"
-  zip -rX "$NEW_NAME" "$FRAMEWORK_NAME.xcframework/"
-  mv "$NEW_NAME" "$ORIGIN"
-  cd "$ORIGIN"
-
-  upload_framework $NEW_NAME
-}
-
 # Check if an option was provided
 if [ -z "$1" ]; then
-  echo "Usage: $0 {upgrade|clean|submodule|build}"
+  echo "Usage: $0 {upgrade|download|upload|resing|list}"
   exit 1
 fi
 
 # Execute the corresponding function based on the provided option
 case $1 in
   upgrade)
-    build_framework
+    all
     ;;
-  clean)
-    clean_version "$2"
+  download)
+    download_framework
     ;;
-  submodule)
-    update_sub_module
+  upload)
+    upload_framework
     ;;
-  build)
-    build_framework
+  resing)
+    resing_framework "$2" "$3"
+    ;;
+  list)
+    list_identity
     ;;
   *)
     echo "Invalid option. Usage: $0 {download|upload}"
     exit 1
     ;;
 esac
-
