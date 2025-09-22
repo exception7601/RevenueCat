@@ -83,7 +83,37 @@ upload_framework() {
   Make Carthage
   JSON_CARTHAGE="$(jq --arg version "${VERSION}" --arg url "${DOWNLOAD_URL}" '. + { ($version): $url }' $JSON_FILE)" 
   echo $JSON_CARTHAGE > $JSON_FILE
-  git add $JSON_FILE
+
+PACKAGE=$(cat <<END
+// swift-tools-version: 6.0
+
+import PackageDescription
+
+let package = Package(
+  name: "RevenueCat",
+  platforms: [.iOS(.v13)],
+  products: [
+    .library(
+      name: "RevenueCat",
+      targets: [
+        "RevenueCat",
+      ]
+    ),
+  ],
+
+  targets: [
+    .binaryTarget(
+      name: "RevenueCat",
+      url: "${DOWNLOAD_URL}",
+      checksum: "${SUM}"
+    )
+  ]
+)
+END
+)
+  echo "$PACKAGE" > Package.swift
+
+  git add Package.swift  $JSON_FILE
   git commit -m "new Version ${NEW_VERSION}"
   git tag -s -a ${NEW_VERSION} -m "v${NEW_VERSION}"
   # git checkout -b release-v${VERSION}
