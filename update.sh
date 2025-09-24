@@ -26,7 +26,7 @@ all() {
 
   remove_sing ${ROOT_FOLDER}
   zip_framework
-  upload_framework
+  upload_framework ${NEW_NAME} ${VERSION}
 }
 
 zip_framework() {
@@ -71,54 +71,26 @@ download_framework() {
 }
 
 upload_framework() {
+  FRAMEWORK=$1
+  NAME_FRAMEWORK=$(basename "$FRAMEWORK")
   SUM=$(swift package compute-checksum ${NEW_NAME} )
-  DOWNLOAD_URL="https://github.com/${MY_REPO}/releases/download/${VERSION}/${NEW_NAME}"
+  DOWNLOAD_URL="https://github.com/${MY_REPO}/releases/download/${VERSION}/${NAME_FRAMEWORK}"
   BUILD=$(date +%s) 
-  NEW_VERSION=${VERSION}
+  NEW_VERSION=$2
   # echo $NEW_VERSION > version
 
   if [ ! -f $JSON_FILE ]; then
     echo "{}" > $JSON_FILE
   fi
-  Make Carthage
+  # Make Carthage
   JSON_CARTHAGE="$(jq --arg version "${VERSION}" --arg url "${DOWNLOAD_URL}" '. + { ($version): $url }' $JSON_FILE)" 
   echo $JSON_CARTHAGE > $JSON_FILE
-
-PACKAGE=$(cat <<END
-// swift-tools-version: 6.0
-
-import PackageDescription
-
-let package = Package(
-  name: "RevenueCat",
-  platforms: [.iOS(.v13)],
-  products: [
-    .library(
-      name: "RevenueCat",
-      targets: [
-        "RevenueCat",
-      ]
-    ),
-  ],
-
-  targets: [
-    .binaryTarget(
-      name: "RevenueCat",
-      url: "${DOWNLOAD_URL}",
-      checksum: "${SUM}"
-    )
-  ]
-)
-END
-)
-  echo "$PACKAGE" > Package.swift
-
-  git add Package.swift  $JSON_FILE
+  git add $JSON_FILE
   git commit -m "new Version ${NEW_VERSION}"
   git tag -s -a ${NEW_VERSION} -m "v${NEW_VERSION}"
   # git checkout -b release-v${VERSION}
   git push origin HEAD --tags
-  gh release create ${NEW_VERSION} ${NEW_NAME} --notes "checksum \`${SUM}\`"
+  gh release create ${NEW_VERSION} ${FRAMEWORK} --notes "checksum \`${SUM}\`"
 
 NOTES=$(cat <<END
 Carthage
@@ -188,14 +160,25 @@ clean_version() {
   git push origin --delete $LAST_VERSION
 }
 
+merge_build() {
+  # ./create-xcframeworks.sh
+  NEW_NAME=$(realpath .build/xcframeworks/*.zip)
+  BUILD=$(date +%s) 
+  NEW_VERSION="${VERSION}.${BUILD}"
+  upload_framework $NEW_NAME $VERSION
+}
+
 # Check if an option was provided
 if [ -z "$1" ]; then
-  echo "Usage: $0 {upgrade|download|upload|resing|list}"
+  echo "Usage: $0 {upgrade|download|upload|resing|list|merge}"
   exit 1
 fi
 
 # Execute the corresponding function based on the provided option
 case $1 in
+  merge)
+    merge_build
+    ;;
   upgrade)
     all
     ;;
