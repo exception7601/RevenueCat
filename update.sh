@@ -76,8 +76,9 @@ upload_framework() {
   SUM=$(swift package compute-checksum ${NEW_NAME} )
   DOWNLOAD_URL="https://github.com/${MY_REPO}/releases/download/${VERSION}/${NAME_FRAMEWORK}"
   BUILD=$(date +%s) 
-  NEW_VERSION=$2
-  # echo $NEW_VERSION > version
+  NEW_VERSION=$VERSION
+
+  echo $NEW_VERSION > version
 
   if [ ! -f $JSON_FILE ]; then
     echo "{}" > $JSON_FILE
@@ -85,7 +86,8 @@ upload_framework() {
   # Make Carthage
   JSON_CARTHAGE="$(jq --arg version "${VERSION}" --arg url "${DOWNLOAD_URL}" '. + { ($version): $url }' $JSON_FILE)" 
   echo $JSON_CARTHAGE > $JSON_FILE
-  git add $JSON_FILE
+  git add $JSON_FILE version
+
   git commit -m "new Version ${NEW_VERSION}"
   git tag -s -a ${NEW_VERSION} -m "v${NEW_VERSION}"
   # git checkout -b release-v${VERSION}
@@ -161,7 +163,7 @@ clean_version() {
 }
 
 merge_build() {
-  # ./create-xcframeworks.sh
+  ./create-xcframeworks.sh
   NEW_NAME=$(realpath .build/xcframeworks/*.zip)
   BUILD=$(date +%s) 
   NEW_VERSION="${VERSION}.${BUILD}"
