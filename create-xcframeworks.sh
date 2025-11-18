@@ -37,9 +37,6 @@ main() {
       -archivePath "$ROOT/$ARCHIVE_NAME-$PLATAFORM.xcarchive" \
       MERGEABLE_LIBRARY=YES \
       SKIP_INSTALL=NO \
-      CODE_SIGN_IDENTITY="Apple Development" \
-      DEVELOPMENT_TEAM=PN8K78V28P \
-      CODE_SIGN_STYLE=Automatic \
       BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
       DEBUG_INFORMATION_FORMAT=DWARF
   done
@@ -53,6 +50,10 @@ main() {
   NEW_NAME=revenuecat-${BUILD_COMMIT}.zip
 
   cd "$ROOT"
+
+  echo "---> codesign"
+  IDENTITY=$(security find-identity -v -p codesigning | awk '/Apple Distribution/ {print $2; exit}')
+  codesign --timestamp -s $IDENTITY "$FRAMEWORK_NAME.xcframework/"
 
   # rm -f "$NEW_NAME"
   zip -rX "$NEW_NAME" "$FRAMEWORK_NAME.xcframework/"
