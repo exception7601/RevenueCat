@@ -17,6 +17,8 @@ main() {
   echo "tag version: ${LATEST_TAG}"
   git checkout -f $TAG_COMMIT
 
+  set -e
+
   cd $ORIGIN 
   # git add purchases-ios
   # git commit -m "update submodule $LATEST_TAG"
@@ -35,6 +37,9 @@ main() {
       -archivePath "$ROOT/$ARCHIVE_NAME-$PLATAFORM.xcarchive" \
       MERGEABLE_LIBRARY=YES \
       SKIP_INSTALL=NO \
+      CODE_SIGN_IDENTITY="Apple Development" \
+      DEVELOPMENT_TEAM=PN8K78V28P \
+      CODE_SIGN_STYLE=Automatic \
       BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
       DEBUG_INFORMATION_FORMAT=DWARF
   done
