@@ -14,7 +14,7 @@ VERSION=$(
 
 JSON_FILE="Carthage/RevenueCatBinary.json"
 
-upload_framework() {
+upgrade_framework() {
 
   if git rev-parse "${VERSION}" >/dev/null 2>&1; then
     echo "Version ${VERSION} already exists. No update needed."
@@ -64,13 +64,13 @@ END
 
 # Check if an option was provided
 if [ -z "$1" ]; then
-  echo "Usage: $0 {upgrade|download|upload|resing|list|merge}"
+  echo "Usage: $0 {upgrade}"
   exit 1
 fi
 
 case $1 in
-upload)
-  upload_framework
+upgrade)
+  upgrade_framework
   ;;
 *)
   echo "Invalid option. Usage: $0 {download|upload}"
