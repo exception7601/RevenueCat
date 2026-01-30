@@ -23,8 +23,8 @@ upgrade_framework() {
 
   fastlane build_and_sign_xcframework
 
-  BUILD=$(date +%s)
-  NEW_VERSION="${VERSION}.${BUILD}"
+# BUILD=$(date +%s)
+  NEW_VERSION="${VERSION}"
 
   FRAMEWORK=$(realpath .build/xcframeworks/*.zip)
   NAME_FRAMEWORK=$(basename "$FRAMEWORK")
@@ -42,7 +42,7 @@ upgrade_framework() {
 
   git commit -m "new Version ${NEW_VERSION}"
   git tag -a "${NEW_VERSION}" -m "v${NEW_VERSION}"
-  # git push origin HEAD --tags
+  git push origin HEAD --tags
 
   NOTES=$(
     cat <<END
@@ -58,7 +58,7 @@ carthage bootstrap --use-xcframeworks
 END
   )
 
-  # gh release create "${NEW_VERSION}" "${FRAMEWORK}" --notes "${NOTES}"
+  gh release create "${NEW_VERSION}" "${FRAMEWORK}" --notes "${NOTES}"
   echo "${NOTES}"
 }
 
