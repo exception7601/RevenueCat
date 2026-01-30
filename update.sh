@@ -23,6 +23,7 @@ upgrade_framework() {
 
   fastlane build_and_sign_xcframework
 
+  echo "start upload version"
 # BUILD=$(date +%s)
   NEW_VERSION="${VERSION}"
 
