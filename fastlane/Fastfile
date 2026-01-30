@@ -78,7 +78,7 @@ platform :ios do
 
       sh("git -C #{project_path} checkout -f \'#{tag_commit}\'")
 
-      root = File.expand_path(".build/xcframeworks")
+      root = File.expand_path("../.build/xcframeworks")
       framework_name = "RevenueCat"
       archive_name = "revenuecat"
       platforms = ["iOS", "iOS Simulator"]
