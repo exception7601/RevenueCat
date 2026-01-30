@@ -1,0 +1,5 @@
+git_url("https://github.com/exception7601/match.git")
+storage_mode("git")
+git_branch("master")
+type("appstore")
+username("and.xyz@icloud.com")

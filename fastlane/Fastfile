@@ -1,0 +1,128 @@
+# This file contains the fastlane.tools configuration
+#
+#
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+# Uncomment the line if you want fastlane to automatically update itself
+
+TEMP_KEYCHAIN_USER = "temp"
+TEMP_KEYCHAIN_PASSWORD = ENV["TEMP_KEYCHAIN_PASSWORD"]
+KEY_ID = ENV["KEY_ID"]
+ISSUER_ID = ENV["ISSUER_ID"]
+KEY_CONTENT = ENV["KEY_CONTENT"]
+GIT_ENCODE = ENV["GIT_ENCODE"]
+
+def delete_temp_keychain(name)
+  delete_keychain(
+    name: name,
+  ) if File.exist? File.expand_path("~/Library/Keychains/#{name}-db")
+end
+
+def create_temp_keychain(name, password)
+  create_keychain(
+    name: name,
+    password: password,
+    unlock: false,
+    timeout: 0,
+  )
+end
+
+def ensure_temp_keychain(name, password)
+  delete_temp_keychain(name)
+  create_temp_keychain(name, password)
+end
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and sign XCFramework"
+  lane :build_and_sign_xcframework do
+    begin
+      app_store_connect_api_key(
+        key_id: KEY_ID,
+        issuer_id: ISSUER_ID,
+        key_content: KEY_CONTENT,
+        is_key_content_base64: true,
+        duration: 1200,
+        in_house: false,
+      )
+
+      keychain_name = TEMP_KEYCHAIN_USER
+      keychain_password = TEMP_KEYCHAIN_PASSWORD
+      ensure_temp_keychain(keychain_name, keychain_password)
+
+      match(
+        type: "appstore",
+        git_basic_authorization: "#{GIT_ENCODE}",
+        readonly: false,
+        keychain_name: keychain_name,
+        keychain_password: keychain_password,
+        skip_provisioning_profiles: true,
+        app_identifier: "*",
+      )
+
+      project_path = File.expand_path("../purchases-ios")
+      git_submodule_update(recursive: true, init: true)
+      sh("git -C #{project_path} fetch --tags --quiet")
+      latest_tag = sh("git -C #{project_path} tag --sort=-creatordate | grep -v \'rc\|beta\|alpha\' | head -n 1").strip
+      tag_commit = sh("git -C #{project_path} rev-list -n 1 \'#{latest_tag}\'").strip
+      UI.message("tag version: #{latest_tag}")
+
+      sh("git -C #{project_path} checkout -f \'#{tag_commit}\'")
+
+      root = File.expand_path(".build/xcframeworks")
+      framework_name = "RevenueCat"
+      archive_name = "revenuecat"
+      platforms = ["iOS", "iOS Simulator"]
+
+      sh("rm -rf #{root}")
+
+      platforms.each do |platform|
+        gym(
+          project: "purchases-ios/#{framework_name}.xcodeproj",
+          scheme: framework_name,
+          destination: "generic/platform=#{platform}",
+          archive_path: "#{root}/#{archive_name}-#{platform}.xcarchive",
+          clean: false,
+          skip_package_ipa: true,
+          xcargs: "MERGEABLE_LIBRARY=YES SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES DEBUG_INFORMATION_FORMAT=DWARF",
+        )
+      end
+
+      framework_path = "Products/Library/Frameworks/RevenueCat.framework"
+
+      create_xcframework(
+        frameworks: [
+          "#{root}/#{archive_name}-iOS.xcarchive/#{framework_path}",
+          "#{root}/#{archive_name}-iOS Simulator.xcarchive/#{framework_path}",
+        ],
+        output: "#{root}/#{framework_name}.xcframework",
+      )
+
+      identity = sh("security find-identity -v -p codesigning | awk \'/Apple Distribution/ {print $2; exit}\'").strip
+      xcframework_path = "#{root}/#{framework_name}.xcframework"
+      sh("codesign --timestamp -s #{identity} #{xcframework_path}")
+      sh("codesign --verify --verbose #{xcframework_path}")
+
+      build_commit = sh("git -C #{project_path} log --oneline --abbrev=16 --pretty=format:\"%h\" -1").strip
+      new_name = "revenuecat-#{build_commit}.zip"
+      zip_path = zip(
+        path: "#{root}/#{framework_name}.xcframework",
+        output_path: "#{root}/#{new_name}",
+        verbose: false,
+      )
+
+      UI.message("xcframework #{zip_path}")
+    ensure
+      delete_temp_keychain(keychain_name)
+    end
+  end
+end
