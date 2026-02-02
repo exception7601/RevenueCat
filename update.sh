@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -14,6 +14,60 @@ VERSION=$(
 
 JSON_FILE="Carthage/RevenueCatBinary.json"
 
+ORIGIN=$(pwd)
+ROOT="$(pwd)/.build/xcframeworks"
+MODULE_PATH="purchases-ios"
+FRAMEWORK_NAME=RevenueCat
+ARCHIVE_NAME=revenuecat
+FRAMEWORK_PATH="Products/Library/Frameworks/RevenueCat.framework"
+PLATAFORMS=("iOS" "iOS Simulator")
+
+create_xcframeworks() {
+  git submodule update --init --recursive
+  cd "$MODULE_PATH" || true
+
+  git fetch --tags
+
+  LATEST_TAG=$(git tag --sort=-creatordate | grep -v 'rc\|beta\|alpha' | head -n 1)
+  TAG_COMMIT=$(git rev-list -n 1 "$LATEST_TAG")
+
+  echo "tag version: ${LATEST_TAG}"
+  git checkout -f "$TAG_COMMIT"
+
+  git apply "../revenuecat-api.patch"
+
+  rm -rf "$ROOT"
+
+  for PLATAFORM in "${PLATAFORMS[@]}"
+  do
+    echo "Building for $PLATAFORM..."
+    xcodebuild archive \
+      -project "$FRAMEWORK_NAME.xcodeproj" \
+      -scheme "$FRAMEWORK_NAME" \
+      -destination "generic/platform=$PLATAFORM" \
+      -archivePath "$ROOT/$ARCHIVE_NAME-$PLATAFORM.xcarchive" \
+      MERGEABLE_LIBRARY=YES \
+      SKIP_INSTALL=NO \
+      BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+      DEBUG_INFORMATION_FORMAT=DWARF \
+      MACH_O_TYPE=staticlib \
+      ONLY_ACTIVE_ARCH=NO
+  done
+
+  xcodebuild -create-xcframework \
+    -framework "$ROOT/$ARCHIVE_NAME-iOS.xcarchive/$FRAMEWORK_PATH" \
+    -framework "$ROOT/$ARCHIVE_NAME-iOS Simulator.xcarchive/$FRAMEWORK_PATH" \
+    -output "$ROOT/$FRAMEWORK_NAME.xcframework"
+
+  BUILD_COMMIT=$(git log --oneline --abbrev=16 --pretty=format:"%h" -1)
+  NEW_NAME=revenuecat-${BUILD_COMMIT}.zip
+
+  cd "$ROOT"
+
+  zip -rX "$NEW_NAME" "$FRAMEWORK_NAME.xcframework/"
+  cd "$ORIGIN"
+}
+
 upgrade_framework() {
 
   if git rev-parse "${VERSION}" >/dev/null 2>&1; then
@@ -21,7 +75,7 @@ upgrade_framework() {
     exit 0
   fi
 
-  fastlane build_and_sign_xcframework
+  create_xcframeworks
 
   echo "start upload version"
   BUILD=$(date +%s)
@@ -68,9 +122,14 @@ END
   echo "${NOTES}"
 }
 
+build_framework() {
+  create_xcframeworks
+  echo "Build completed. XCFramework available at: $ROOT/$FRAMEWORK_NAME.xcframework"
+}
+
 # Check if an option was provided
 if [ -z "$1" ]; then
-  echo "Usage: $0 {upgrade}"
+  echo "Usage: $0 {upgrade|build}"
   exit 1
 fi
 
@@ -78,8 +137,11 @@ case $1 in
 upgrade)
   upgrade_framework
   ;;
+build)
+  build_framework
+  ;;
 *)
-  echo "Invalid option. Usage: $0 {download|upload}"
+  echo "Invalid option. Usage: $0 {upgrade|build}"
   exit 1
   ;;
 esac

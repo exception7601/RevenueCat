@@ -78,6 +78,9 @@ platform :ios do
 
       sh("git -C #{project_path} checkout -f \'#{tag_commit}\'")
 
+      patch="../revenuecat-api.patch"
+      sh("git -C #{project_path} apply #{patch}'")
+
       root = File.expand_path("../.build/xcframeworks")
       framework_name = "RevenueCat"
       archive_name = "revenuecat"
@@ -93,7 +96,7 @@ platform :ios do
           archive_path: "#{root}/#{archive_name}-#{platform}.xcarchive",
           clean: false,
           skip_package_ipa: true,
-          xcargs: "MERGEABLE_LIBRARY=YES SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES DEBUG_INFORMATION_FORMAT=DWARF",
+          xcargs: "MERGEABLE_LIBRARY=YES SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES DEBUG_INFORMATION_FORMAT=DWARF MACH_O_TYPE=staticlib",
         )
       end
 
@@ -119,7 +122,6 @@ platform :ios do
         output_path: "#{root}/#{new_name}",
         verbose: false,
       )
-
       UI.message("xcframework #{zip_path}")
     ensure
       delete_temp_keychain(keychain_name)

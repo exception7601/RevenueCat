@@ -1,0 +1,31 @@
+diff --git a/Sources/Purchasing/StoreKitAbstractions/SubscriptionPeriod.swift b/Sources/Purchasing/StoreKitAbstractions/SubscriptionPeriod.swift
+index e490d3979..e6eb202f3 100644
+--- a/Sources/Purchasing/StoreKitAbstractions/SubscriptionPeriod.swift
++++ b/Sources/Purchasing/StoreKitAbstractions/SubscriptionPeriod.swift
+@@ -18,7 +18,7 @@ import StoreKit
+ /// Use the value and the unit together to determine the subscription period.
+ /// For example, if the unit is  `.month`, and the value is `3`, the subscription period is three months.
+ @objc(RCSubscriptionPeriod)
+-public final class SubscriptionPeriod: NSObject {
++public final class SubscriptionPeriod: NSObject,Codable {
+ 
+     /// The number of period units.
+     @objc public let value: Int
+@@ -35,7 +35,7 @@ public final class SubscriptionPeriod: NSObject {
+ 
+     /// Units of time used to describe subscription periods.
+     @objc(RCSubscriptionPeriodUnit)
+-    public enum Unit: Int {
++    public enum Unit: Int, Codable {
+ 
+         /// A subscription period unit of a day.
+         case day = 0
+@@ -268,8 +268,3 @@ fileprivate extension SubscriptionPeriod.Unit {
+     }
+ 
+ }
+-
+-// MARK: - Encodable
+-
+-extension SubscriptionPeriod.Unit: Codable { }
+-extension SubscriptionPeriod: Codable { }
