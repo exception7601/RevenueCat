@@ -24,14 +24,14 @@ upgrade_framework() {
   fastlane build_and_sign_xcframework
 
   echo "start upload version"
-# BUILD=$(date +%s)
+  BUILD=$(date +%s)
   NEW_VERSION="${VERSION}"
 
   FRAMEWORK=$(realpath .build/xcframeworks/*.zip)
   NAME_FRAMEWORK=$(basename "$FRAMEWORK")
   DOWNLOAD_URL="https://github.com/${MY_REPO}/releases/download/${VERSION}/${NAME_FRAMEWORK}"
 
-  echo "$NEW_VERSION" >version
+  echo "$NEW_VERSION.$BUILD" >version
 
   if [ ! -f $JSON_FILE ]; then
     echo "{}" >$JSON_FILE
@@ -40,9 +40,9 @@ upgrade_framework() {
   JSON_CARTHAGE="$(jq --arg version "${VERSION}" --arg url "${DOWNLOAD_URL}" '. + { ($version): $url }' $JSON_FILE)"
   echo "$JSON_CARTHAGE" >$JSON_FILE
 
-  #if ! git diff --quiet purchases-ios; then
-  #  git add purchases-ios
-  # fi
+  if ! git diff --quiet purchases-ios; then
+    git add purchases-ios
+  fi
   
   git add $JSON_FILE version
 
