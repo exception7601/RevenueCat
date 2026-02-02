@@ -21,20 +21,19 @@ FRAMEWORK_NAME=RevenueCat
 ARCHIVE_NAME=revenuecat
 FRAMEWORK_PATH="Products/Library/Frameworks/RevenueCat.framework"
 PLATAFORMS=("iOS" "iOS Simulator")
+PATCH="$ORIGIN/revenuecat-api.patch"
 
 create_xcframeworks() {
   git submodule update --init --recursive
-  cd "$MODULE_PATH" || true
 
-  git fetch --tags
+  git -C "$MODULE_PATH" fetch --tags
 
-  LATEST_TAG=$(git tag --sort=-creatordate | grep -v 'rc\|beta\|alpha' | head -n 1)
-  TAG_COMMIT=$(git rev-list -n 1 "$LATEST_TAG")
+  LATEST_TAG=$(git -C "$MODULE_PATH" tag --sort=-creatordate | grep -v 'rc\|beta\|alpha' | head -n 1)
+  TAG_COMMIT=$(git -C "$MODULE_PATH" rev-list -n 1 "$LATEST_TAG")
 
   echo "tag version: ${LATEST_TAG}"
-  git checkout -f "$TAG_COMMIT"
-
-  git apply "../revenuecat-api.patch"
+  git -C "$MODULE_PATH" checkout -f "$TAG_COMMIT"
+  git -C "$MODULE_PATH" apply "$PATCH"
 
   rm -rf "$ROOT"
 
@@ -42,7 +41,7 @@ create_xcframeworks() {
   do
     echo "Building for $PLATAFORM..."
     xcodebuild archive \
-      -project "$FRAMEWORK_NAME.xcodeproj" \
+      -project "$MODULE_PATH/$FRAMEWORK_NAME.xcodeproj" \
       -scheme "$FRAMEWORK_NAME" \
       -destination "generic/platform=$PLATAFORM" \
       -archivePath "$ROOT/$ARCHIVE_NAME-$PLATAFORM.xcarchive" \
@@ -59,7 +58,7 @@ create_xcframeworks() {
     -framework "$ROOT/$ARCHIVE_NAME-iOS Simulator.xcarchive/$FRAMEWORK_PATH" \
     -output "$ROOT/$FRAMEWORK_NAME.xcframework"
 
-  BUILD_COMMIT=$(git log --oneline --abbrev=16 --pretty=format:"%h" -1)
+  BUILD_COMMIT=$(git -C $MODULE_PATH log --oneline --abbrev=16 --pretty=format:"%h" -1)
   NEW_NAME=revenuecat-${BUILD_COMMIT}.zip
 
   cd "$ROOT"
