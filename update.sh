@@ -39,6 +39,10 @@ upgrade_framework() {
 
   JSON_CARTHAGE="$(jq --arg version "${VERSION}" --arg url "${DOWNLOAD_URL}" '. + { ($version): $url }' $JSON_FILE)"
   echo "$JSON_CARTHAGE" >$JSON_FILE
+
+  if ! git diff --quiet purchases-ios; then
+    git add purchases-ios
+  fi
   git add $JSON_FILE version
 
   git commit -m "new Version ${NEW_VERSION}"
