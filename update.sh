@@ -12,8 +12,6 @@ VERSION=$(
     --json tagName -q '.[0].tagName'
 )
 
-JSON_FILE="Carthage/RevenueCatBinary.json"
-
 ORIGIN=$(pwd)
 ROOT="$(pwd)/.build/xcframeworks"
 MODULE_PATH="purchases-ios"
@@ -81,41 +79,34 @@ upgrade_framework() {
   NEW_VERSION="${VERSION}"
 
   FRAMEWORK=$(realpath .build/xcframeworks/*.zip)
+  SUM=$(swift package compute-checksum "${FRAMEWORK}")
   NAME_FRAMEWORK=$(basename "$FRAMEWORK")
   DOWNLOAD_URL="https://github.com/${MY_REPO}/releases/download/${VERSION}/${NAME_FRAMEWORK}"
 
   echo "$NEW_VERSION.$BUILD" >version
 
-  if [ ! -f $JSON_FILE ]; then
-    echo "{}" >$JSON_FILE
-  fi
-
-  JSON_CARTHAGE="$(jq --arg version "${VERSION}" --arg url "${DOWNLOAD_URL}" '. + { ($version): $url }' $JSON_FILE)"
-  echo "$JSON_CARTHAGE" >$JSON_FILE
-
   if ! git diff --quiet purchases-ios; then
     git add purchases-ios
   fi
   
-  git add $JSON_FILE version
+  git add version
 
   git commit -m "new Version ${NEW_VERSION}"
   git tag -a "${NEW_VERSION}" -m "v${NEW_VERSION}"
   git push origin HEAD --tags
 
-  NOTES=$(
-    cat <<END
-Carthage
-\`\`\`
-binary "https://raw.githubusercontent.com/${MY_REPO}/main/${JSON_FILE}"
-\`\`\`
+  NOTES=$(cat <<END
+SPM binaryTarget
 
-Install
-\`\`\`
-carthage bootstrap --use-xcframeworks
+\`\`\`swift
+.binaryTarget(
+    name: "${FRAMEWORK_NAME}",
+    url: "${DOWNLOAD_URL}",
+    checksum: "${SUM}"
+)
 \`\`\`
 END
-  )
+)
 
   gh release create "${NEW_VERSION}" "${FRAMEWORK}" --notes "${NOTES}"
   echo "${NOTES}"
