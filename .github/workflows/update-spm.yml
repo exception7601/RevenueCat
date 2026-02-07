@@ -1,4 +1,4 @@
-name: Update Carthage
+name: Update SPM
 
 on:
   schedule:
