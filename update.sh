@@ -31,7 +31,7 @@ create_xcframeworks() {
 
   echo "tag version: ${LATEST_TAG}"
   git -C "$MODULE_PATH" checkout -f "$TAG_COMMIT"
-  git -C "$MODULE_PATH" apply "$PATCH"
+  perl -i -0777 -p "$ORIGIN/regras.pl" "$MODULE_PATH/Sources/Purchasing/StoreKitAbstractions/SubscriptionPeriod.swift"
 
   rm -rf "$ROOT"
 
