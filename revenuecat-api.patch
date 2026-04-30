@@ -1,8 +1,8 @@
 diff --git a/Sources/Purchasing/StoreKitAbstractions/SubscriptionPeriod.swift b/Sources/Purchasing/StoreKitAbstractions/SubscriptionPeriod.swift
-index 63ed98454..22479dfcf 100644
+index aa07e88e5..8b2591470 100644
 --- a/Sources/Purchasing/StoreKitAbstractions/SubscriptionPeriod.swift
 +++ b/Sources/Purchasing/StoreKitAbstractions/SubscriptionPeriod.swift
-@@ -35,7 +35,7 @@ public final class SubscriptionPeriod: NSObject, Codable {
+@@ -40,7 +40,7 @@ public final class SubscriptionPeriod: NSObject, Codable {
  
      /// Units of time used to describe subscription periods.
      @objc(RCSubscriptionPeriodUnit)
@@ -11,9 +11,10 @@ index 63ed98454..22479dfcf 100644
  
          /// A subscription period unit of a day.
          case day = 0
-@@ -270,5 +270,3 @@ fileprivate extension SubscriptionPeriod.Unit {
+@@ -290,6 +290,3 @@ fileprivate extension SubscriptionPeriod.Unit {
+ 
  }
  
- // MARK: - Encodable
+-// MARK: - Codable
 -
 -extension SubscriptionPeriod.Unit: Codable { }

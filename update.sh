@@ -31,7 +31,8 @@ create_xcframeworks() {
 
   echo "tag version: ${LATEST_TAG}"
   git -C "$MODULE_PATH" checkout -f "$TAG_COMMIT"
-  git -C "$MODULE_PATH" apply "$PATCH"
+
+  # git -C "$MODULE_PATH" apply "$PATCH"
 
   rm -rf "$ROOT"
 
