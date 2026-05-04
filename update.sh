@@ -18,7 +18,7 @@ MODULE_PATH="purchases-ios"
 FRAMEWORK_NAME=RevenueCat
 ARCHIVE_NAME=revenuecat
 FRAMEWORK_PATH="Products/Library/Frameworks/RevenueCat.framework"
-PLATAFORMS=("iOS" "iOS Simulator")
+PLATAFORMS=("iOS" "iOS Simulator" "macOS,variant=Mac Catalyst")
 PATCH="$ORIGIN/revenuecat-api.patch"
 
 create_xcframeworks() {
@@ -47,6 +47,8 @@ create_xcframeworks() {
       MERGEABLE_LIBRARY=YES \
       SKIP_INSTALL=NO \
       BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+      SUPPORTS_MACCATALYST=YES \
+      TARGETED_DEVICE_FAMILY="1,2" \
       SWIFT_INSTALL_OBJC_HEADER=NO \
       DEBUG_INFORMATION_FORMAT=DWARF \
       MACH_O_TYPE=staticlib \
@@ -56,6 +58,7 @@ create_xcframeworks() {
   xcodebuild -create-xcframework \
     -framework "$ROOT/$ARCHIVE_NAME-iOS.xcarchive/$FRAMEWORK_PATH" \
     -framework "$ROOT/$ARCHIVE_NAME-iOS Simulator.xcarchive/$FRAMEWORK_PATH" \
+    -framework "$ROOT/$ARCHIVE_NAME-macOS,variant=Mac Catalyst.xcarchive/$FRAMEWORK_PATH" \
     -output "$ROOT/$FRAMEWORK_NAME.xcframework"
 
   BUILD_COMMIT=$(git -C $MODULE_PATH log --oneline --abbrev=16 --pretty=format:"%h" -1)
